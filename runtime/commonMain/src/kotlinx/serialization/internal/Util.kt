@@ -88,6 +88,15 @@ internal fun SerialDescriptor.cachedSerialNames(): Set<String> {
     return result
 }
 
+private val EMPTY_DESCRIPTOR_ARRAY: Array<SerialDescriptor> = arrayOf()
+
+/**
+ * Same as [toTypedArray], but uses special empty array constant, if [this]
+ * is null or empty.
+ */
+internal fun List<SerialDescriptor>?.compactArray(): Array<SerialDescriptor> =
+    takeUnless { it.isNullOrEmpty() }?.toTypedArray() ?: EMPTY_DESCRIPTOR_ARRAY
+
 /**
  * Returns serial descriptor that delegates all the calls to descriptor returned by [deferred] block.
  * Used to resolve cyclic dependencies between recursive serializable structures.

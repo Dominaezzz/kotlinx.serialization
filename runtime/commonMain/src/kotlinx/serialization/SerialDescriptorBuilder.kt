@@ -222,7 +222,7 @@ internal class SerialDescriptorImpl(
     override val serialName: String,
     override val kind: SerialKind,
     override val elementsCount: Int,
-    val typeParameters: List<SerialDescriptor>,
+    typeParameters: List<SerialDescriptor>,
     builder: SerialDescriptorBuilder
 ) : SerialDescriptor {
 
@@ -230,10 +230,12 @@ internal class SerialDescriptorImpl(
     public override val annotations: List<Annotation> = builder.annotations
 
     private val elementNames: Array<String> = builder.elementNames.toTypedArray()
-    private val elementDescriptors: Array<SerialDescriptor> = builder.elementDescriptors.toTypedArray()
+    private val elementDescriptors: Array<SerialDescriptor> = builder.elementDescriptors.compactArray()
     private val elementAnnotations: Array<List<Annotation>> = builder.elementAnnotations.toTypedArray()
     private val elementOptionality: BooleanArray = builder.elementOptionality.toBooleanArray()
     private val name2Index: Map<String, Int> = elementNames.withIndex().map { it.value to it.index }.toMap()
+    private val typeParametersDescriptors: Array<SerialDescriptor> = typeParameters.compactArray()
+    private val _hashCode: Int by lazy { hashCodeImpl(typeParametersDescriptors) }
 
     override fun getElementName(index: Int): String = elementNames.getChecked(index)
     override fun getElementIndex(name: String): Int = name2Index[name] ?: CompositeDecoder.UNKNOWN_NAME
@@ -242,9 +244,11 @@ internal class SerialDescriptorImpl(
     override fun isElementOptional(index: Int): Boolean = elementOptionality.getChecked(index)
 
     override fun equals(other: Any?): Boolean =
-        equalsImpl(other) { otherDescriptor: SerialDescriptorImpl -> typeParameters == otherDescriptor.typeParameters }
-
-    private val _hashCode: Int by lazy { hashCodeImpl(typeParameters) }
+        equalsImpl(other) { otherDescriptor: SerialDescriptorImpl ->
+            typeParametersDescriptors.contentEquals(
+                otherDescriptor.typeParametersDescriptors
+            )
+        }
 
     override fun hashCode(): Int = _hashCode
 

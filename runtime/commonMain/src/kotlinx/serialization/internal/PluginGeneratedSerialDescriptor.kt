@@ -2,6 +2,7 @@
  * Copyright 2017-2020 JetBrains s.r.o. Use of this source code is governed by the Apache 2.0 license.
  */
 @file:Suppress("OPTIONAL_DECLARATION_USAGE_IN_NON_COMMON_SOURCE", "UNUSED")
+
 package kotlinx.serialization.internal
 
 import kotlinx.serialization.*
@@ -32,6 +33,10 @@ public open class PluginGeneratedSerialDescriptor(
 
     // don't change lazy mode: KT-32871, KT-32872
     private val indices: Map<String, Int> by lazy { buildIndices() }
+    private val typeParameterDescriptors: Array<SerialDescriptor> by lazy {
+        generatedSerializer?.typeParametersSerializers()?.map { it.descriptor }.compactArray()
+    }
+    private val _hashCode: Int by lazy { hashCodeImpl(typeParameterDescriptors) }
 
     public fun addElement(name: String, isOptional: Boolean = false) {
         names[++added] = name
@@ -64,10 +69,6 @@ public open class PluginGeneratedSerialDescriptor(
                 ?: throw IndexOutOfBoundsException("$serialName descriptor has only $elementsCount elements, index: $index")
     }
 
-    internal val typeParameterDescriptors: List<SerialDescriptor> by lazy {
-        generatedSerializer?.typeParametersSerializers()?.map { it.descriptor }.orEmpty()
-    }
-
     override fun isElementOptional(index: Int): Boolean = flags.getChecked(index)
     override fun getElementAnnotations(index: Int): List<Annotation> =
         propertiesAnnotations.getChecked(index) ?: emptyList()
@@ -84,14 +85,11 @@ public open class PluginGeneratedSerialDescriptor(
     }
 
     override fun equals(other: Any?): Boolean = equalsImpl(other) { otherDescriptor ->
-        typeParameterDescriptors == otherDescriptor.typeParameterDescriptors
+        typeParameterDescriptors.contentEquals(otherDescriptor.typeParameterDescriptors)
     }
-
-    private val _hashCode: Int by lazy { hashCodeImpl(typeParameterDescriptors) }
 
     override fun hashCode(): Int = _hashCode
 
-    // todo: should type parameters be in serial name?
     override fun toString(): String {
         return indices.entries.joinToString(", ", "$serialName(", ")") {
             it.key + ": " + getElementDescriptor(it.value).serialName
@@ -116,9 +114,9 @@ internal inline fun <reified SD : SerialDescriptor> SD.equalsImpl(
 }
 
 @Suppress("NOTHING_TO_INLINE")
-internal inline fun SerialDescriptor.hashCodeImpl(typeParams: List<SerialDescriptor>): Int {
+internal inline fun SerialDescriptor.hashCodeImpl(typeParams: Array<SerialDescriptor>): Int {
     var result = serialName.hashCode()
-    result = 31 * result + typeParams.hashCode()
+    result = 31 * result + typeParams.contentHashCode()
     val elementDescriptors = elementDescriptors()
     result = 31 * result + elementDescriptors.map { it.serialName }.hashCode()
     result = 31 * result + elementDescriptors.map { it.kind }.hashCode()
