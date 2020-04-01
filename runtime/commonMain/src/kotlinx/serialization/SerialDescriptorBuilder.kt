@@ -8,8 +8,8 @@ import kotlinx.serialization.internal.*
 
 /**
  * Builder for [SerialDescriptor].
- * The resulting descriptor will be uniquely identified by the given [serialName] and [typeParameters],
- * with the corresponding [kind] and structure described in [builder] function.
+ * The resulting descriptor will be uniquely identified by the given [serialName], [typeParameters] and
+ * elements structure described in [builder] function.
  *
  * Example:
  * ```

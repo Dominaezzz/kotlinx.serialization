@@ -64,6 +64,35 @@ package kotlinx.serialization
  * ### Thread-safety and mutability
  * Serial descriptor implementation should be immutable after the publication and thread-safe.
  *
+ * ### Equality and caching
+ * In some cases, after the format-specific schema was built using descriptor's data,
+ * one may want to save and associate this schema with descriptor. Natural choice for such a cache would be a [Map].
+ * To do so, every serial descriptor implementation must correctly override [hashCode] and [equals].
+ * However, different implementations may be not comparable to each other, e.g. [equals] implementation
+ * may return `false` if `other`'s parameter class is different from `this` class without any further checks.
+ *
+ * A correct [equals] implementation for the serial descriptor respects not only [serialName],
+ * but elements structure, too. Comparing [elementDescriptors] directly is not recommended though,
+ * because it may cause a stack overflow error, e.g. if class `T` contains elements of type `T`.
+ * To avoid such a problem, a serial descriptor implementation have to compare only descriptors
+ * of class' type parameters, in a such way that
+ * `serializer<Box<Int>>().descriptor != serializer<Box<String>>().descriptor`.
+ * If type parameters are equal, descriptors structure should be compared by using children elements
+ * descriptors' [serialName]s, which correspond to class names
+ * (do not confuse with elements own names, which correspond to properties names); and/or other [SerialDescriptor]
+ * properties, such as [kind].
+ * A correct [equals] implementation may look like this:
+ * ```
+ * if (this === other) return true
+ * if (other::class != this::class) return false
+ * if (serialName != other.serialName) return false
+ * if (!typeParamsAreEqual(other)) return false
+ * if (this.elementDescriptors().map {it.serialName} != other.elementDescriptors().map {it.serialName}) return false
+ * return true
+ * ```
+ *
+ * [hashCode] implementation should use the same properties for computing result.
+ *
  * ### User-defined serial descriptors
  * The best way to define a custom descriptor is to use [SerialDescriptor] builder function, where
  * for each serializable property corresponding element is declared.
