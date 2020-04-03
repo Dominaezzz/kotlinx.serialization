@@ -236,7 +236,7 @@ public class ProtoBuf(
         }
 
         private fun serializeByteArray(value: ByteArray) {
-            val tag = popTagOrMissing()
+            val tag = popTagOrDefault()
             if (tag == MISSING_TAG) {
                 writer.writeBytes(value)
             } else {
@@ -376,12 +376,12 @@ public class ProtoBuf(
             return when (descriptor.kind) {
                 StructureKind.LIST -> RepeatedDecoder(reader, currentTagOrDefault, descriptor)
                 StructureKind.CLASS, StructureKind.OBJECT, is PolymorphicKind -> {
-                    val tag = currentTagOrNull
-                    // Do not create redundant copy
-                    if (tag == null && this.descriptor == descriptor) return this
+                    val tag = currentTagOrDefault
+                        // Do not create redundant copy
+                    if (tag == MISSING_TAG && this.descriptor == descriptor) return this
                     return ProtobufDecoder(makeDelimited(reader, tag), descriptor)
                 }
-                StructureKind.MAP -> MapEntryReader(makeDelimitedForced(reader, currentTagOrNull), currentTagOrNull, descriptor)
+                StructureKind.MAP -> MapEntryReader(makeDelimitedForced(reader, currentTagOrDefault), currentTagOrDefault, descriptor)
                 else -> throw SerializationException("Primitives are not supported at top-level")
             }
         }
@@ -391,8 +391,8 @@ public class ProtoBuf(
         }
 
         override fun decodeTaggedBoolean(tag: ProtoDesc): Boolean = when(val value = decodeTaggedInt(tag)) {
-            1 -> true
             0 -> false
+            1 -> true
             else -> throw SerializationException("Unexpected boolean value: $value")
         }
 
@@ -505,6 +505,7 @@ public class ProtoBuf(
         init {
             tagOrSize = if (currentTag == MISSING_TAG) {
                 val length = reader.readInt32NoTag()
+                require(length >= 0) { "Expected positive length for $descriptor, but got $length" }
                 -length.toLong()
             } else {
                 currentTag
@@ -550,24 +551,24 @@ public class ProtoBuf(
 
     private inner class MapEntryReader(
         decoder: ProtobufReader,
-        @JvmField val parentTag: ProtoDesc?,
+        @JvmField val parentTag: ProtoDesc,
         descriptor: SerialDescriptor
     ) : ProtobufDecoder(decoder, descriptor) {
         override fun SerialDescriptor.getTag(index: Int): ProtoDesc =
-            if (index % 2 == 0) ProtoDesc(1, (parentTag?.numberType ?: ProtoNumberType.DEFAULT))
-            else ProtoDesc(2, (parentTag?.numberType ?: ProtoNumberType.DEFAULT))
+            if (index % 2 == 0) ProtoDesc(1, (parentTag.numberType))
+            else ProtoDesc(2, (parentTag.numberType))
     }
 
     public companion object Default : BinaryFormat by ProtoBuf() {
-        private fun makeDelimited(decoder: ProtobufReader, parentTag: ProtoDesc?): ProtobufReader {
-            if (parentTag == null) return decoder
+        private fun makeDelimited(decoder: ProtobufReader, parentTag: ProtoDesc): ProtobufReader {
+            if (parentTag == MISSING_TAG) return decoder
             // TODO use array slice instead of array copy
             val bytes = decoder.readObject()
             return ProtobufReader(ByteArrayInput(bytes))
         }
 
-        private fun makeDelimitedForced(decoder: ProtobufReader, parentTag: ProtoDesc?): ProtobufReader {
-            val bytes = if (parentTag == null) decoder.readObjectNoTag()
+        private fun makeDelimitedForced(decoder: ProtobufReader, parentTag: ProtoDesc): ProtobufReader {
+            val bytes = if (parentTag == MISSING_TAG) decoder.readObjectNoTag()
             else decoder.readObject()
             return ProtobufReader(ByteArrayInput(bytes))
         }

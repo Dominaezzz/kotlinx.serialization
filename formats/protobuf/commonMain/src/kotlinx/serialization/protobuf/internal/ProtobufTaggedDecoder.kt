@@ -7,7 +7,7 @@ package kotlinx.serialization.protobuf.internal
 import kotlinx.serialization.*
 import kotlinx.serialization.protobuf.*
 
-internal abstract class ProtobufTaggedDecoder : TaggedBase(), Decoder, CompositeDecoder {
+internal abstract class ProtobufTaggedDecoder : ProtobufTaggedBase(), Decoder, CompositeDecoder {
     override val updateMode: UpdateMode =
         UpdateMode.UPDATE
 
@@ -29,16 +29,16 @@ internal abstract class ProtobufTaggedDecoder : TaggedBase(), Decoder, Composite
 
     final override fun decodeNotNullMark(): Boolean = true
     final override fun decodeNull(): Nothing? = null
-    final override fun decodeBoolean(): Boolean = decodeTaggedBoolean(popTagOrMissing())
-    final override fun decodeByte(): Byte = decodeTaggedByte(popTagOrMissing())
-    final override fun decodeShort(): Short = decodeTaggedShort(popTagOrMissing())
-    final override fun decodeInt(): Int = decodeTaggedInt(popTagOrMissing())
-    final override fun decodeLong(): Long = decodeTaggedLong(popTagOrMissing())
-    final override fun decodeFloat(): Float = decodeTaggedFloat(popTagOrMissing())
-    final override fun decodeDouble(): Double = decodeTaggedDouble(popTagOrMissing())
-    final override fun decodeChar(): Char = decodeTaggedChar(popTagOrMissing())
-    final override fun decodeString(): String = decodeTaggedString(popTagOrMissing())
-    final override fun decodeEnum(enumDescriptor: SerialDescriptor): Int = decodeTaggedEnum(popTagOrMissing(), enumDescriptor)
+    final override fun decodeBoolean(): Boolean = decodeTaggedBoolean(popTagOrDefault())
+    final override fun decodeByte(): Byte = decodeTaggedByte(popTagOrDefault())
+    final override fun decodeShort(): Short = decodeTaggedShort(popTagOrDefault())
+    final override fun decodeInt(): Int = decodeTaggedInt(popTagOrDefault())
+    final override fun decodeLong(): Long = decodeTaggedLong(popTagOrDefault())
+    final override fun decodeFloat(): Float = decodeTaggedFloat(popTagOrDefault())
+    final override fun decodeDouble(): Double = decodeTaggedDouble(popTagOrDefault())
+    final override fun decodeChar(): Char = decodeTaggedChar(popTagOrDefault())
+    final override fun decodeString(): String = decodeTaggedString(popTagOrDefault())
+    final override fun decodeEnum(enumDescriptor: SerialDescriptor): Int = decodeTaggedEnum(popTagOrDefault(), enumDescriptor)
 
     override fun beginStructure(descriptor: SerialDescriptor, vararg typeParams: KSerializer<*>): CompositeDecoder {
         return this
